@@ -322,7 +322,7 @@ def calculate_traffic(gmaps, start_addr, end_addr, std_time, label_prefix):
             
         cur_mins = parse_duration_to_minutes(time_str)
         
-        # 依據圖二：往苗栗使用黃色(Gold)，反程使用青色(Cyan)
+        # 依據圖二：設定基礎顏色 - 往苗栗(黃色), 反程(青色)
         if "往苗栗" in label_prefix:
             base_class = "text-gold"
         else:
@@ -331,9 +331,16 @@ def calculate_traffic(gmaps, start_addr, end_addr, std_time, label_prefix):
         if cur_mins > 0:
             diff = cur_mins - std_time
             sign = "+" if diff > 0 else ""
-            display_text = f"{label_prefix} : {time_str} ({sign}{diff}分)"
-            # 只有當延遲非常嚴重(>20分)時才轉紅，否則維持圖二的標準配色
-            color_class = "text-red" if diff > 20 else base_class
+            
+            # === 新增判斷：若延遲 > 20 分鐘，僅將 (+XX分) 部分顯示為紅色 ===
+            if diff > 20:
+                diff_part = f"<span style='color: #ff5252 !important;'>({sign}{diff}分)</span>"
+            else:
+                diff_part = f"({sign}{diff}分)"
+            
+            display_text = f"{label_prefix} : {time_str} {diff_part}"
+            color_class = base_class # 主體顏色維持原樣
+            
         else:
             display_text = f"{label_prefix} : {time_str}"
             color_class = base_class
@@ -410,7 +417,7 @@ with col_right:
     base_addr = "苗栗縣公館鄉鶴山村11鄰鶴山146號"
     
     # ==========================================
-    # 路況地點資料設定 (依據圖一更新標準分鐘數)
+    # 路況地點資料設定
     # 格式: (顯示名稱, 目標地址, 回程顯示名稱, 去程標準分, 回程標準分)
     # ==========================================
     target_locations = [
