@@ -27,6 +27,7 @@ except ImportError:
 # ==========================================
 # 設定：Google Maps API Key
 # ==========================================
+# 請確認您的 API KEY 是否有效，若無效路況將顯示 "API未設定"
 GOOGLE_MAPS_API_KEY = "AIzaSyBK2mfGSyNnfytW7sRkNM5ZWqh2SVGNabo" 
 
 # ==========================================
@@ -39,7 +40,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# CSS 樣式注入 (已針對截圖配色優化)
+# CSS 樣式注入 (針對截圖配色優化)
 # ==========================================
 st.markdown("""
     <style>
@@ -69,7 +70,7 @@ st.markdown("""
         border-bottom: 2px solid #ccc;
     }
 
-    /* 左側數據顯示框 (維持原樣) */
+    /* 左側數據顯示框 */
     .data-box {
         background-color: #2c3e50;
         padding: 15px;
@@ -81,7 +82,7 @@ st.markdown("""
         margin-bottom: 10px;
     }
 
-    /* === 新增：右側路況卡片樣式 (仿照截圖) === */
+    /* === 右側路況卡片樣式 (依據圖二配色) === */
     .traffic-card {
         background-color: #2c3e50; /* 深藍灰背景 */
         border: 1px solid #546E7A; /* 細邊框 */
@@ -92,16 +93,17 @@ st.markdown("""
     }
 
     .traffic-card-title {
-        color: #ecf0f1; /* 標題淺灰白 */
+        color: #ecf0f1; /* 標題淺灰白 (圖二中的名字顏色) */
         font-size: 18px;
         font-weight: normal;
         margin-bottom: 8px;
-        border-bottom: 1px solid #455a64; /* 標題下分隔線 */
+        border-bottom: 1px solid #455a64;
         display: inline-block;
         padding-right: 10px;
         padding-bottom: 2px;
     }
 
+    /* 路況文字行樣式 */
     .traffic-row {
         display: block;
         font-size: 24px; /* 字體加大 */
@@ -114,11 +116,11 @@ st.markdown("""
         opacity: 0.8;
     }
 
-    /* 字體顏色定義 (依照截圖) */
-    .text-gold { color: #ffca28; }  /* 亮黃色 (往苗栗) */
-    .text-cyan { color: #26c6da; }  /* 亮青色 (反程) */
+    /* 字體顏色定義 (依據圖二：去程黃色，回程青色) */
+    .text-gold { color: #ffca28 !important; }  /* 亮黃色 (往苗栗) */
+    .text-cyan { color: #26c6da !important; }  /* 亮青色 (反程) */
     .text-green { color: #2ecc71; } 
-    .text-red { color: #ff5252; }    
+    .text-red { color: #ff5252 !important; }    
     .text-white { color: #ffffff; }
     
     .stButton>button {
@@ -299,7 +301,7 @@ def calculate_traffic(gmaps, start_addr, end_addr, std_time, label_prefix):
     url = get_google_maps_url(start_addr, end_addr)
     
     if not gmaps:
-        return f"{label_prefix} : API未設定/缺套件", "text-white", url
+        return f"{label_prefix} : API未設定", "text-white", url
 
     try:
         matrix = gmaps.distance_matrix(
@@ -320,8 +322,8 @@ def calculate_traffic(gmaps, start_addr, end_addr, std_time, label_prefix):
             
         cur_mins = parse_duration_to_minutes(time_str)
         
-        # 依據截圖：往苗栗使用黃色(Gold)，反程使用青色(Cyan)
-        if label_prefix == "往苗栗":
+        # 依據圖二：往苗栗使用黃色(Gold)，反程使用青色(Cyan)
+        if "往苗栗" in label_prefix:
             base_class = "text-gold"
         else:
             base_class = "text-cyan"
@@ -330,7 +332,7 @@ def calculate_traffic(gmaps, start_addr, end_addr, std_time, label_prefix):
             diff = cur_mins - std_time
             sign = "+" if diff > 0 else ""
             display_text = f"{label_prefix} : {time_str} ({sign}{diff}分)"
-            # 只有當延遲非常嚴重(>20分)時才轉紅，否則維持截圖的配色
+            # 只有當延遲非常嚴重(>20分)時才轉紅，否則維持圖二的標準配色
             color_class = "text-red" if diff > 20 else base_class
         else:
             display_text = f"{label_prefix} : {time_str}"
@@ -407,12 +409,19 @@ with col_right:
     
     base_addr = "苗栗縣公館鄉鶴山村11鄰鶴山146號"
     
-    # (顯示名稱, 目標地址, 回程顯示名稱, 去程標準分, 回程標準分)
+    # ==========================================
+    # 路況地點資料設定 (依據圖一更新標準分鐘數)
+    # 格式: (顯示名稱, 目標地址, 回程顯示名稱, 去程標準分, 回程標準分)
+    # ==========================================
     target_locations = [
-        ("月華家", "文山區木柵路二段109巷137號", "反木柵", 76, 76),
-        ("秋華家", "新竹的名人大矽谷", "反芎林", 34, 36),
-        ("孟竹家", "新竹市東區太原路128號", "反新竹", 31, 33),
-        ("小凱家", "台北市內湖區文湖街21巷", "反內湖", 77, 79)
+        # 月華: 1hr16m = 76分, 1hr14m = 74分
+        ("月華家", "文山區木柵路二段109巷137號", "反木柵", 76, 74),
+        # 秋華: 33分, 35分
+        ("秋華家", "新竹的名人大矽谷", "反芎林", 33, 35),
+        # 孟竹: 31分, 32分
+        ("孟竹家", "新竹市東區太原路128號", "反新竹", 31, 32),
+        # 小凱: 1hr16m = 76分, 1hr18m = 78分
+        ("小凱家", "台北市內湖區文湖街21巷", "反內湖", 76, 78)
     ]
     
     gmaps_client = None
@@ -422,7 +431,6 @@ with col_right:
         except:
             pass
     
-    # === 修改處：使用 traffic-card 結構來還原截圖樣式 ===
     for name, target_addr, return_label, std_go, std_back in target_locations:
         
         txt_go, cls_go, url_go = calculate_traffic(gmaps_client, target_addr, base_addr, std_go, "往苗栗")
